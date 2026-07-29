@@ -228,6 +228,9 @@ body{
   transition:opacity 0.3s;
 }
 #music-player.visible{display:flex;}
+#music-player.behind-modal{
+  z-index:1;
+}
 .mp-track{
   font-size:11px;color:rgba(255,255,255,0.7);
   letter-spacing:0.05em;white-space:nowrap;
@@ -303,8 +306,9 @@ body{
    ============================================================ */
 .letters-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
-  gap:28px;margin-bottom:80px;
+  grid-template-columns:repeat(2,minmax(240px,340px));
+  justify-content:center;
+  gap:36px;margin-bottom:80px;
 }
 .envelope-card{
   position:relative;cursor:pointer;
@@ -947,6 +951,7 @@ body{
           <div class="envelope-seal" id="env-seal-1">F&B</div>
           <div class="envelope-num">Carta 02</div>
           <p class="envelope-preview">"Eu acho que nunca te  contei isso..."</p>
+          <br>
           <p class="envelope-cta">Abrir carta →</p>
         </div>
       </div>
@@ -961,6 +966,7 @@ body{
           <div class="envelope-seal" id="env-seal-2">F&B</div>
           <div class="envelope-num">Carta 03</div>
           <p class="envelope-preview">"Nosso Ensino Médio foi deveras crazy..."</p>
+          <br>
           <p class="envelope-cta">Abrir carta →</p>
         </div>
       </div>
@@ -1215,19 +1221,41 @@ function safeNoPos(){
   btnNo.style.transform = `rotate(${rot}deg)`;
 }
 
-// Initial placement — right of yes button area
-(function initNoBtn(){
+// Initial placement — exactly to the right of the yes button
+function placeNoNextToYes(){
   getBtnNoDims();
+  const yesBtn = document.querySelector('.btn-yes');
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  btnNo.style.left = Math.min(vw/2+20, vw-btnNoW-MARGIN) + 'px';
-  btnNo.style.top  = (vh/2+40) + 'px';
+  if(yesBtn){
+    const yesRect = yesBtn.getBoundingClientRect();
+    const gap = 20;
+    let x = yesRect.right + gap;
+    let y = yesRect.top + (yesRect.height/2) - (btnNoH/2);
+    if(x + btnNoW + MARGIN > vw){ x = vw - btnNoW - MARGIN; }
+    if(y + btnNoH + MARGIN > vh){ y = vh - btnNoH - MARGIN; }
+    if(y < MARGIN){ y = MARGIN; }
+    btnNo.style.left = x + 'px';
+    btnNo.style.top  = y + 'px';
+  } else {
+    btnNo.style.left = Math.min(vw/2+20, vw-btnNoW-MARGIN) + 'px';
+    btnNo.style.top  = (vh/2+40) + 'px';
+  }
   btnNo.style.transform = 'rotate(0deg)';
-})();
+}
+placeNoNextToYes();
+window.addEventListener('load', placeNoNextToYes);
 
-btnNo.addEventListener('mouseenter', safeNoPos);
-btnNo.addEventListener('touchstart', safeNoPos, {passive:true});
-window.addEventListener('resize', safeNoPos);
+let noHasFled = false;
+function fleeNoBtn(){
+  noHasFled = true;
+  safeNoPos();
+}
+btnNo.addEventListener('mouseenter', fleeNoBtn);
+btnNo.addEventListener('touchstart', fleeNoBtn, {passive:true});
+window.addEventListener('resize', function(){
+  if(noHasFled){ safeNoPos(); } else { placeNoNextToYes(); }
+});
 
 /* ──────────────────────────────────────────────
    SCREEN TRANSITIONS
@@ -1596,11 +1624,15 @@ function openTimelineModal(i){
 function openModal(id){
   document.getElementById(id).classList.add('open');
   document.body.style.overflow='hidden';
+  if(id==='modal-letter'){ player.classList.add('behind-modal'); }
 }
 function closeModal(id){
   document.getElementById(id).classList.remove('open');
   document.body.style.overflow='';
-  if(id==='modal-letter') clearTypewriter();
+  if(id==='modal-letter'){
+    clearTypewriter();
+    player.classList.remove('behind-modal');
+  }
 }
 document.querySelectorAll('.modal-overlay').forEach(o=>{
   o.addEventListener('click',function(e){
